@@ -1,12 +1,11 @@
-import datetime
 import logging
-
 import asyncio
-
 import aiocoap.resource as resource
 import aiocoap
-from sensorapp_pb2 import Mensagem,Config,Dados,Sensor
-from sensordb import SensorDB,Sensor,Placa,Amostra
+
+from server.sensorapp_pb2 import Mensagem
+from server.sensordb import SensorDB, Placa, Sensor, Amostra
+
 
 class SensorApp(resource.Resource):
 
