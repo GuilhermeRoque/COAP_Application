@@ -13,4 +13,4 @@
   São usadas para enviar os valores amostrados dos sensores. 
   O servidor de coleta recusa mensagens Dados de placas não registradas. Valores de sensores desconhecidos são ignorados. 
   
-- Servidor de coleta: sensorapp.py
+- Servidor de coleta: **sensorapp.py**
