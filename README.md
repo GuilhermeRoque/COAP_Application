@@ -14,9 +14,9 @@
   O servidor de coleta recusa mensagens Dados de placas não registradas. Valores de sensores desconhecidos são ignorados. 
   
 - Para executar pelo terminal vá para o diretório raiz do projeto e execute os comandos:
-  1. source venv/bin/activate (se for criado um venv e isntalado os modulos em requirements.txt)
-  2. python3.6 -m server.sensorapp (para o servidor)
-  3. python3.6 -m client.coapGET (para o cliente)
+  1. **source venv/bin/activate** (se for criado um venv e isntalado os modulos em requirements.txt)
+  2. **python3.6 -m server.sensorapp** (para o servidor)
+  3. **python3.6 -m client.coapGET** (para o cliente)
 
 ![](https://github.com/GuilhermeRoque/COAP_Application/blob/master/coapFormat.png)
 
