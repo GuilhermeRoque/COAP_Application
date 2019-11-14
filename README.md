@@ -18,7 +18,9 @@
   2. **python3.6 -m server.sensorapp** (para o servidor)
   3. **python3.6 -m client.coapGET** (para o cliente)
 
+>Formato da mensagem COAP.
 ![](https://github.com/GuilhermeRoque/COAP_Application/blob/master/coapFormat.png)
 
+>Máquina de estado.
 ![](https://github.com/GuilhermeRoque/COAP_Application/blob/master/fsm.png)
 
