@@ -3,8 +3,7 @@ import asyncio
 import aiocoap.resource as resource
 import aiocoap
 
-from server.sensorapp_pb2 import Mensagem
-from server.sensordb import SensorDB, Placa, Sensor, Amostra
+from server.sensordb import SensorDB
 
 
 class SensorApp(resource.Resource):
