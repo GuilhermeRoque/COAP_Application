@@ -14,3 +14,9 @@
   O servidor de coleta recusa mensagens Dados de placas não registradas. Valores de sensores desconhecidos são ignorados. 
   
 - Servidor de coleta: **sensorapp.py**
+
+
+![](https://github.com/GuilhermeRoque/COAP_Application/blob/master/coapFormat.png)
+
+![](https://github.com/GuilhermeRoque/COAP_Application/blob/master/fsm.png)
+
