@@ -8,8 +8,8 @@ logging.basicConfig(level=logging.INFO)
 async def main():
     protocol = await Context.create_client_context()
 
-    #request = Message(code=GET, uri='coap://localhost:5683/ptc')
-    request = Message(code=GET, uri='coap://localhost:5683/.well-known/core')
+    request = Message(code=GET, uri='coap://localhost:5683/ptc')
+    # request = Message(code=GET, uri='coap://localhost:5683/.well-known/core')
 
 
     try:
