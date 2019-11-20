@@ -1,16 +1,39 @@
 from math import log2, ceil
 
 
-class MessageCodeClass(object):
-    REQUEST = 0
-    SUCCESS_RESPONSE = 2
-    CLIENT_ERROR_RESPONSE = 4
-    SERVER_ERROR_RESPONSE = 5
+class RequestCode(object):
+    GET = 0b00000001
+    POST = 0b00000010
 
+class ResponseCode(object):
+    """ Section 12.1.2 - Pg. 87 """
 
-class MessageDetail(object):
-    GET = 1
-    POST = 2
+    # Code 2 (Success)
+    CREATED = 0b01000001
+    DELETED = 0b01000010
+    VALID = 0b01000011
+    CHANGED = 0b01000100
+    CONTENT = 0b01000101
+
+    # Code 4 (Client Error)
+    BAD_REQUEST = 0b10000000
+    UNAUTHORIZED = 0b10000001
+    BAD_OPTION = 0b10000010
+    FORBIDDEN = 0b10000011
+    NOT_FOUND = 0b10000100
+    METHOD_NOT_ALLOWED = 0b10000101
+    NOT_ACCEPTABLE = 0b10000110
+    PRECONDITION_FAILED = 0b10001100
+    REQUEST_ENTITY_TOO_LARGE = 0b10001101
+    UNSUPPORTED_CONTENT_FORMAT = 0b10001111
+
+    # Code 5 (Server Error)
+    INTERNAL_SERVER_ERROR = 0b10100000
+    NOT_IMPLEMENTED = 0b10100001
+    BAD_GATEWAY = 0b10100010
+    SERVICE_UNAVAILABLE = 0b10100011
+    GATEWAY_TIMEOUT = 0b10100100
+    PROXYING_NOT_SUPPORTED = 0b10100101
 
 
 class MessageType(object):
@@ -45,7 +68,7 @@ class BasicMessage(object):
     Basic massage has the following format and fields:
 
     0                   1                   2                   3
-    0 1  4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     |Ver| T |  TKL  |      Code     |          Message ID           |
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -88,13 +111,12 @@ class BasicMessage(object):
 
     """
 
-    def __init__(self, typeMessage: int = 0, token: int = 0, codeClass: int = 0, detail: int = 0, messageId: int = 0):
+    def __init__(self, typeMessage: int = 0, token: int = 0, code: int = 0, messageId: int = 0):
         self.VERSION = 1
         self.TKL = 4  # Tamanho do Token fixo por enquanto (4 bytes)
         self.typeMessage = typeMessage
         self.token = token
-        self.codeClass = codeClass
-        self.detail = detail
+        self.code = code
         self.messageId = messageId
 
     def getVersion(self) -> int:
@@ -118,17 +140,11 @@ class BasicMessage(object):
     def getTokenBytes(self) -> bytes:
         return self.token.to_bytes(self.TKL, byteorder='big')
 
-    def setCodeClass(self, codeClass: int):
-        self.codeClass = codeClass
+    def setCode(self, code: int):
+        self.code = code
 
-    def getCodeClass(self) -> int:
-        return self.codeClass
-
-    def setDetail(self, detail: int):
-        self.detail = detail
-
-    def getDetail(self) -> int:
-        return self.detail
+    def getCode(self) -> int:
+        return self.code
 
     def setMessageId(self, messageId: int):
         self.messageId = messageId
@@ -140,8 +156,7 @@ class BasicMessage(object):
         header = self.VERSION << 30
         header += self.typeMessage << 28
         header += self.TKL << 24
-        header += self.codeClass << 21
-        header += self.detail << 16
+        header += self.code << 16
         header += self.messageId
         return header.to_bytes(4, byteorder='big')
 
@@ -157,14 +172,14 @@ class Request(BasicMessage):
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     """
 
-    def __init__(self, typeMessage: int = 0, token: int = 0, detail: int = 0, messageId: int = 0):
+    def __init__(self, typeMessage: int = 0, token: int = 0, code: int = 0, messageId: int = 0):
         """
         Atributo options vai salvar as opções no seguinte formato:
         { option1 : (length, value), option2 : (length, value) }
         Exemplo: { 3 : (9, localhost), 7 : (2, 5683) }
         """
         self.options = {}
-        super(Request, self).__init__(typeMessage, token, MessageCodeClass.REQUEST, detail, messageId)
+        super(Request, self).__init__(typeMessage, token, code, messageId)
 
     def setOption(self, option: int, value: int or str or bytes):
         length = 0
@@ -200,17 +215,27 @@ class Request(BasicMessage):
 
 
 class GET(Request):
-    def __init__(self, typeMessage: int = 0, token: int = 0, messageId: int = 0):
-        super(GET, self).__init__(typeMessage, token, MessageDetail.GET, messageId)
+    def __init__(self, typeMessage: int = 0, token: int = 0, messageId: int = 0, code: int = None):
+
+        # Se code não é None, o programa recebeu um pacote e está tentando identificá-lo
+        if code is not None and code != RequestCode.GET:
+            raise InvalidMessageCode("This is not a GET message")
+
+        super(GET, self).__init__(typeMessage, token, RequestCode.GET, messageId)
 
     def getMessage(self) -> bytes:
         return self.getHeader() + self.getTokenBytes() + self.getOptions()
 
 
 class POST(Request):
-    def __init__(self, typeMessage: int = 0, token: int = 0, messageId: int = 0, payload: bytes = None):
+    def __init__(self, typeMessage: int = 0, token: int = 0, messageId: int = 0, payload: bytes = None, code: int = None):
+
+        # Se code não é None, o programa recebeu um pacote e está tentando identificá-lo
+        if code is not None and code != RequestCode.POST:
+            raise InvalidMessageCode("This is not a POST message")
+
         self.payload = payload if payload is not None else bytes()
-        super(POST, self).__init__(typeMessage, token, MessageDetail.POST, messageId)
+        super(POST, self).__init__(typeMessage, token, RequestCode.POST, messageId)
 
     def getPayload(self) -> bytes:
         return self.payload
@@ -223,3 +248,72 @@ class POST(Request):
 
     def getMessage(self) -> bytes:
         return self.getHeader() + self.getTokenBytes() + self.getOptions() + self.getEndOptions() + self.payload
+
+
+class Response(BasicMessage):
+    """
+    Request Message includes Options field.
+    The difference between a Request and a Response is on MessageCodeClass.
+
+        0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |   Options (if any) ...
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    """
+
+    def __init__(self, typeMessage: int = 0, token: int = 0, messageId: int = 0, payload: bytes = None, code: int = None):
+        # Mensagens request so podem ser do tipo ACK ou NON
+        if typeMessage != MessageType.ACK and typeMessage != MessageType.NON_CONFIRMABLE:
+            raise InvalidMessageType("Tipo de Request invalido")
+
+        # Se code não é None, o programa recebeu um pacote e está tentando identifica-lo
+        # Codes menores que 0b00100000 (0x20) nao sao response
+        if code is not None and code < 0x20:
+            raise InvalidMessageCode("This is not a Response message")
+
+        self.payload = payload if payload is not None else bytes()
+        super(Response, self).__init__(typeMessage, token, code, messageId)
+
+    def setPayload(self, payload: bytes):
+        self.payload = payload
+
+    def getPayload(self) -> bytes:
+        return self.payload
+
+
+class MessageTranslator(object):
+    def __init__(self, message: bytes):
+        self.message = message
+
+    def translate(self) -> BasicMessage:
+        first_byte = self.message[0]
+        # version = (first_byte >> 6) & 3
+        type = (first_byte >> 4) & 3
+        tkl = first_byte & 15
+
+        code = self.message[1]
+        messageId = self.message[2:4]
+        end_token = 5 + tkl
+        token = self.message[5:end_token]
+
+        msg = None
+        try:
+            msg = Response(typeMessage=type, token=token, messageId=messageId, code=code)
+            msg.setPayload(self.message[end_token+2:])
+        except InvalidMessageKind as e:
+            pass
+
+        # TODO fazer para mensagens GET e POST também
+
+        return msg
+
+
+class InvalidMessageKind(Exception):
+    pass
+
+class InvalidMessageCode(InvalidMessageKind):
+    pass
+
+class InvalidMessageType(InvalidMessageKind):
+    pass

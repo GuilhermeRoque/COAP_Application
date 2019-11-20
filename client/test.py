@@ -1,5 +1,5 @@
 import socket
-from messages import GET, POST, MessageType, MessageOptions
+from messages import GET, POST, MessageType, MessageOptions, MessageTranslator, Response
 from projeto2_pb2 import Mensagem
 
 UDP_IP = "localhost"
@@ -20,4 +20,12 @@ postMessage.setOption(MessageOptions.URI_PORT, UDP_PORT)
 postMessage.setOption(MessageOptions.URI_PATH, "ptc")
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
-sock.sendto(postMessage.getMessage(), (UDP_IP, UDP_PORT))
+sock.sendto(getMessage.getMessage(), (UDP_IP, UDP_PORT))
+s = sock.recvfrom(1024)
+
+mt = MessageTranslator(s[0])
+resp = mt.translate()
+if resp is None:
+    print("Não conseguiu interpretar a mensagem")
+else:
+    print(resp.getPayload())
