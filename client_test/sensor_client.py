@@ -71,8 +71,8 @@ class SensorClient(object):
 
 def main():
     sensorClient = SensorClient()
-    # asyncio.get_event_loop().run_until_complete(sensorClient.get())
-    asyncio.get_event_loop().run_until_complete(sensorClient.postConfig())
+    asyncio.get_event_loop().run_until_complete(sensorClient.get())
+    # asyncio.get_event_loop().run_until_complete(sensorClient.postConfig())
     # asyncio.get_event_loop().run_until_complete(sensorClient.postDados())
     # asyncio.async(sensorClient.get())
     # asyncio.get_event_loop().run_forever()

@@ -7,6 +7,8 @@ class RequestCode(object):
 
 class ResponseCode(object):
     """ Section 12.1.2 - Pg. 87 """
+    # Empty Code
+    EMPTY = 0b00000000
 
     # Code 2 (Success)
     CREATED = 0b01000001
@@ -122,10 +124,10 @@ class BasicMessage(object):
     def getVersion(self) -> int:
         return self.VERSION
 
-    def setTypeMessage(self, typeMessage: int):
+    def setMessageType(self, typeMessage: int):
         self.typeMessage = typeMessage
 
-    def getTypeMessage(self) -> int:
+    def getMessageType(self) -> int:
         return self.typeMessage
 
     def setToken(self, token: int):
@@ -263,16 +265,12 @@ class Response(BasicMessage):
     """
 
     def __init__(self, typeMessage: int = 0, token: int = 0, messageId: int = 0, payload: bytes = None, code: int = None):
-        # Mensagens request so podem ser do tipo ACK ou NON
-        if typeMessage != MessageType.ACK and typeMessage != MessageType.NON_CONFIRMABLE:
-            raise InvalidMessageType("Tipo de Request invalido")
-
         # Se code não é None, o programa recebeu um pacote e está tentando identifica-lo
         # Codes menores que 0b00100000 (0x20) nao sao response
         if code is not None and code < 0x20:
             raise InvalidMessageCode("This is not a Response message")
 
-        self.payload = payload if payload is not None else bytes()
+        self.payload = payload
         super(Response, self).__init__(typeMessage, token, code, messageId)
 
     def setPayload(self, payload: bytes):
@@ -286,21 +284,28 @@ class MessageTranslator(object):
     def __init__(self, message: bytes):
         self.message = message
 
-    def translate(self) -> BasicMessage:
+    def translateResp(self) -> BasicMessage:
+        if self.message is None:
+            return None
+
         first_byte = self.message[0]
         # version = (first_byte >> 6) & 3
         type = (first_byte >> 4) & 3
         tkl = first_byte & 15
 
         code = self.message[1]
-        messageId = self.message[2:4]
-        end_token = 5 + tkl
-        token = self.message[5:end_token]
+        messageId = int.from_bytes(self.message[2:4], byteorder="big")
+        if (tkl > 0):
+            end_token = 4 + tkl
+            token = int.from_bytes(self.message[4:end_token], byteorder="big")
+        else:
+            token = 0
 
         msg = None
         try:
             msg = Response(typeMessage=type, token=token, messageId=messageId, code=code)
-            msg.setPayload(self.message[end_token+2:])
+            if (token != 0) and (len(self.message) > (end_token + 1)):
+                msg.setPayload(self.message[end_token+2:])
         except InvalidMessageKind as e:
             pass
 
