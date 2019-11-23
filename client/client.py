@@ -140,10 +140,6 @@ class CoapClient(poller.Callback):
                 self._state = CoapClient.WAIT_CON
                 self.reload_timeout()
 
-            if (resp.getMessageType() == MessageType.RESET):
-                self._response = resp
-                self._end()
-
             # Se passou, entao recebemos um ACK ja com a resposta
             self._response = resp
             self._end()
@@ -174,7 +170,32 @@ class CoapClient(poller.Callback):
         # No estado WAIT_NON, enviamos uma requisição do tipo NON (nao confirmavel)
         # Entao só o que aguardamos é um pacote do tipo NON
         elif self._state == CoapClient.WAIT_NON:
-            pass
+            if event.eventType == CEvent.TIMEOUT:
+                if self._retransmitions == CoapTimeouts.MAX_RETRANSMIT:
+                    self.reload_timeout()
+                    self._end()
+                else:
+                    self._retransmitions += 1
+                    self._sendMessage()
+                    self.base_timeout = self.base_timeout * 2   # PG.21 - Timeout doubles
+                    self.reload_timeout()
+
+            # Se nao for um evento de timeout, é um evento de frame, então tenta traduzir
+            mt = MessageTranslator(event.frame)
+            resp = mt.translateResp()
+
+            # Se a resposta é None, é pq não conseguiu traduzir. Neste caso pode não ser um frame de resposta
+            if resp is None:
+                return
+
+            token = resp.getToken()
+            if (token != self._token):
+                return
+
+            # Resposta recebida
+            self._response = resp
+            self._end()
+
 
     def handle(self):
         ev = CEvent(CEvent.FRAME, self._sock.recvfrom(1024)[0])

@@ -7,16 +7,17 @@ UDP_IP = "localhost"
 UDP_PORT = 5683
 PATH = "ptc"
 
+msg = Mensagem()
+msg.placa = 'placa1'
+msg.config.periodo = 1000
+msg.config.sensores.extend(['sensor1', 'sensor2'])
+
 '''
 getMessage = GET(typeMessage=MessageType.CONFIRMABLE, token=4349, messageId=58374)
 getMessage.setOption(MessageOptions.URI_HOST, UDP_IP)
 getMessage.setOption(MessageOptions.URI_PORT, UDP_PORT)
 getMessage.setOption(MessageOptions.URI_PATH, PATH)
 
-msg = Mensagem()
-msg.placa = 'placa1'
-msg.config.periodo = 1000
-msg.config.sensores.extend(['sensor1', 'sensor2'])
 postMessage = POST(typeMessage=MessageType.CONFIRMABLE, token=4350, messageId=58375, payload=msg.SerializeToString())
 postMessage.setOption(MessageOptions.URI_HOST, UDP_IP)
 postMessage.setOption(MessageOptions.URI_PORT, UDP_PORT)
@@ -34,11 +35,15 @@ else:
     print(resp.getPayload())
 '''
 
-# self, requestType, messageType, ip, port, path, payload=None
 cliente = CoapClient(CoapClient.GET, CoapClient.CON, UDP_IP, UDP_PORT, PATH)
+# cliente = CoapClient(CoapClient.GET, CoapClient.NON, UDP_IP, UDP_PORT, PATH)
+# cliente = CoapClient(CoapClient.POST, CoapClient.CON, UDP_IP, UDP_PORT, PATH, payload=msg.SerializeToString())
+# cliente = CoapClient(CoapClient.POST, CoapClient.NON, UDP_IP, UDP_PORT, PATH, payload=msg.SerializeToString())
 resp = cliente.request()
 if resp is not None:
     print(resp.getPayload())
     print(resp.getCode())
     print(resp.getCodeClass())
     print(resp.getCodeDetail())
+    code_resp = resp.getCodeClass() * 100 + resp.getCodeDetail()
+    print(code_resp)
