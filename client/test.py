@@ -39,3 +39,6 @@ cliente = CoapClient(CoapClient.GET, CoapClient.CON, UDP_IP, UDP_PORT, PATH)
 resp = cliente.request()
 if resp is not None:
     print(resp.getPayload())
+    print(resp.getCode())
+    print(resp.getCodeClass())
+    print(resp.getCodeDetail())

@@ -148,6 +148,12 @@ class BasicMessage(object):
     def getCode(self) -> int:
         return self.code
 
+    def getCodeClass(self) -> int:
+        return self.code >> 5
+
+    def getCodeDetail(self) -> int:
+        return self.code & 0x1F
+
     def setMessageId(self, messageId: int):
         self.messageId = messageId
 
