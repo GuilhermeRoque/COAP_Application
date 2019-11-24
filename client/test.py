@@ -2,6 +2,8 @@ import socket
 from messages import GET, POST, MessageType, MessageOptions, MessageTranslator, Response
 from client import CoapClient
 from projeto2_pb2 import Mensagem
+from poller import Poller
+
 
 UDP_IP = "localhost"
 UDP_PORT = 5683
@@ -38,11 +40,27 @@ else:
 
 
 '''
-cliente = CoapClient(CoapClient.GET, CoapClient.CON, UDP_IP, UDP_PORT, PATH)
+cliente = CoapClient(UDP_IP, UDP_PORT, PATH)
+#cliente.constroi(CoapClient.GET, CoapClient.CON)
+
 # cliente = CoapClient(CoapClient.GET, CoapClient.NON, UDP_IP, UDP_PORT, PATH)
-# cliente = CoapClient(CoapClient.POST, CoapClient.CON, UDP_IP, UDP_PORT, PATH, payload=msg.SerializeToString())
+
+payload = msg.SerializeToString()
+cliente.constroi(CoapClient.POST, CoapClient.CON, payload)
+print("Payload ", payload)
 # cliente = CoapClient(CoapClient.POST, CoapClient.NON, UDP_IP, UDP_PORT, PATH, payload=msg.SerializeToString())
-resp = cliente.request()
+
+poller = Poller()
+poller.adiciona(cliente)
+cliente.request()
+poller.despache()
+
+while not cliente.terminou:
+    pass
+print("Terminou")
+
+resp = cliente._response
+
 if resp is not None:
     print(resp.getPayload())
     print(resp.getCode())

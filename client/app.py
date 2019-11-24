@@ -2,65 +2,82 @@
 # -*- coding: utf-8 -*-
 import random
 import time
+from layer import Layer
+from client import CoapClient
+from projeto2_pb2 import Mensagem, Sensor
+from client import CEvent
 
-from poller import Callback, Poller
-from server import sensorapp_pb2
+UDP_IP = "localhost"
+UDP_PORT = 5683
+PATH = "ptc"
 
 
-class metodosProto(Callback):
-    def __init__(self):
-        self.poller = Poller()
-        #File descriptor
-        self.fd = None
-        self.base_timeout = 10
-        self.disable_timeout()
-        self.disable()
+class App(Layer):
+
+    START = 0
+    WaitConf = 1
+    Active = 2
+    WaitAck = 3
+
+    def __init__(self, periodo=60, sensores=None, placa="placaApp", timeout=None):
+        #Para o poller
+        self.timeout = timeout
         #Placa
-        self.placa = None
+        self.placa = placa
         #Sensores da placa
-        self.sensores = None
+        self.sensores = sensores
+        #Periodo
+        self.periodo = periodo
+        self.state = App.START
 
-    def start(self):
-        mensagem = sensorapp_pb2.Mensagem()
-        mensagem.placa = self.placa
+    def send_conf(self):
+        msg = Mensagem()
+        msg.placa = self.placa
+        msg.config.periodo = self.periodo
+        msg.config.sensores.extend(self.sensores)
+
+        payload = msg.SerializeToString()
+        self._lower.send(payload, CoapClient.POST, CoapClient.CON)
+
+
+    def send_collected_data(self):
+        msg = Mensagem()
+        msg.placa = self.placa
         sensores = []
+
+        #build random data
         for i in range(len(self.sensores)):
-            s = sensorapp_pb2.Sensor()
+            s = Sensor()
             s.nome = self.sensores[i]
             s.valor = random.randint(0, 50)
             s.timestamp = int(time.time())  # horário do sistema
             sensores.append(s)
-        mensagem.dados.amostras.extend(sensores)
-        payload = mensagem.SerializeToString()
-        print('Payload: ', payload)
 
+        msg.dados.amostras.extend(sensores)
+        payload = msg.SerializeToString()
 
-    def config(self, periodo, placa, *sensores):
-        self.placa = placa
-        self.sensores = sensores
-        self.periodo = periodo
-        mensagem = sensorapp_pb2.Mensagem()
-        mensagem.placa = placa
-        mensagem.config.periodo = periodo
-        mensagem.config.sensores.extend(sensores)
-        dados = mensagem.SerializeToString()
-        payload = dados
-        print('Payload: ', payload)
+        self._lower.send(payload, CoapClient.POST, CoapClient.CON)
+
+    def handle(self):
+        ev = CEvent(CEvent.FRAME, self._sock.recvfrom(1024)[0])
+        self.handle_fsm(ev)
 
     def handle_timeout(self):
-        mensagem = sensorapp_pb2.Mensagem()
-        mensagem.placa = self.placa
-        sensores = []
-        for j in range(len(self.sensores)):
-            s = sensorapp_pb2.Sensor()
-            s.nome = self.sensores[j]
-            s.valor = random.randint(0,50)
-            s.timestamp = int(time.time()) #horário do sistema
-            sensores.append(s)
-        mensagem.dados.amostras.extend(sensores)
-        payload = mensagem.SerializeToString()
-        print('Payload: ', payload)
+        ev = CEvent(CEvent.TIMEOUT)
+        self.handle_fsm(ev)
 
-
-inicio = metodosProto()
-inicio.start()
+    def handle_fsm(self, ev):
+        if self.state == App.START:
+            if ev == CEvent.TIMEOUT:
+                self.send_conf()
+                self.state = App.WaitConf
+        elif self.state == App.WaitConf:
+            if ev == CEvent.FRAME:
+                self.state = App.Active
+        elif self.state == App.Active:
+            if ev == CEvent.TIMEOUT:
+                self.send_collected_data()
+                self.state = App.WaitAck
+        elif self.state == App.WaitAck:
+            if ev == CEvent.FRAME:
+                self.state = App.Active

@@ -1,15 +1,14 @@
-from client.callback import Callback
+from callback import Callback
 
 
 class Layer(Callback):
 
-    def __init__(self, lower=None, upper=None, timeout=None):
+    def __init__(self, lower=None, upper=None):
         self._lower = lower
         self._upper = upper
-        self.timeout = timeout
 
-    def notify(self):
+    def notify(self, data, *info):
         pass
 
-    def send(self):
+    def send(self, data, *info):
         pass

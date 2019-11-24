@@ -1,11 +1,8 @@
 import socket
 from messages import GET, POST, MessageType, MessageOptions, MessageTranslator, Response, ResponseCode
-from callback import Callback
-from poller import Poller
 import random
-# import re
+from layer import Layer
 
-# TOKENS = []
 
 class CoapTimeouts(object):
     ACK_TIMEOUT = 2
@@ -22,7 +19,7 @@ class CEvent(object):
         self.frame = frame
 
 
-class CoapClient(Callback):
+class CoapClient(Layer):
     START = 0
     WAIT_ACK = 1
     WAIT_CON = 2
@@ -34,25 +31,32 @@ class CoapClient(Callback):
     CON = 20
     NON = 21
 
-    def __init__(self, requestType, messageType, ip, port, path, payload=None):
-        self._requestType = requestType
-        self._messageType = messageType
+    def __init__(self, ip, port, path):
         self._ip = ip
         self._port = port
         self._path = path
-        self._payload = payload
         self._retransmitions = 0
-        self._poller = Poller()
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self._state = CoapClient.START
-        self._message = self._createMessage()
         self.enable()
         self.disable_timeout()
         self._response = None
         self.fd = self._sock
-        self.base_timeout = random.randint(CoapTimeouts.ACK_TIMEOUT, CoapTimeouts.ACK_TIMEOUT * CoapTimeouts.ACK_RANDOM_FACTOR)
+        self.base_timeout = random.randint(CoapTimeouts.ACK_TIMEOUT,
+                                           CoapTimeouts.ACK_TIMEOUT * CoapTimeouts.ACK_RANDOM_FACTOR)
         self.timeout = self.base_timeout
+        self.terminou = False
 
+        self._requestType = None
+        self._messageType = None
+        self._payload = None
+        self._message = None
+
+    def constroi(self, requestType=None, messageType=None, payload=None):
+        self._requestType = requestType
+        self._messageType = messageType
+        self._payload = payload
+        self._message = self._createMessage()
 
     def _genToken(self):
         return random.randint(1, 65535)
@@ -70,7 +74,6 @@ class CoapClient(Callback):
         msg.setOption(MessageOptions.URI_HOST, self._ip)
         msg.setOption(MessageOptions.URI_PORT, self._port)
         msg.setOption(MessageOptions.URI_PATH, self._path)
-
 
     def _createMessage(self):
         msg = None
@@ -103,6 +106,7 @@ class CoapClient(Callback):
     def _end(self):
         self.disable_timeout()
         self.disable()
+        self.terminou = True
 
     def handle_fsm(self, event):
         # No estado waitAck, encaminhamos um pacote do tipo CON e agora aguardaremos o ACK
@@ -117,7 +121,7 @@ class CoapClient(Callback):
                 else:
                     self._retransmitions += 1
                     self._sendMessage()
-                    self.base_timeout = self.base_timeout * 2   # PG.21 - Timeout doubles
+                    self.base_timeout = self.base_timeout * 2  # PG.21 - Timeout doubles
                     self.reload_timeout()
 
             # Se nao for um evento de timeout, é um evento de frame, então tenta traduzir
@@ -178,7 +182,7 @@ class CoapClient(Callback):
                 else:
                     self._retransmitions += 1
                     self._sendMessage()
-                    self.base_timeout = self.base_timeout * 2   # PG.21 - Timeout doubles
+                    self.base_timeout = self.base_timeout * 2  # PG.21 - Timeout doubles
                     self.reload_timeout()
 
             # Se nao for um evento de timeout, é um evento de frame, então tenta traduzir
@@ -197,7 +201,6 @@ class CoapClient(Callback):
             self._response = resp
             self._end()
 
-
     def handle(self):
         ev = CEvent(CEvent.FRAME, self._sock.recvfrom(1024)[0])
         self.handle_fsm(ev)
@@ -207,7 +210,6 @@ class CoapClient(Callback):
         self.handle_fsm(ev)
 
     def request(self):
-        self._poller.adiciona(self)
         self._sendMessage()
         if self._messageType == CoapClient.CON:
             self._state = CoapClient.WAIT_ACK
@@ -215,11 +217,6 @@ class CoapClient(Callback):
             self._state = CoapClient.WAIT_NON
 
         self.enable_timeout()
-
-        # O poller vai cuidar da maquina de estados olhando para o socket. Assim que finalizar (tendo resposta ou nao)
-        # este metodo irá retornar e a resposta (objeto do tipo Reponse) sera entregue no return.
-        self._poller.despache()
-        return self._response
 
     def getResponse(self):
         return self._response
