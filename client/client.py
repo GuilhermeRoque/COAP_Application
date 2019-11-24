@@ -106,6 +106,7 @@ class CoapClient(Layer):
         self.disable_timeout()
         self._state = CoapClient.START
         self._upper.notify(self._response)
+        self._response = None
 
     def handle_fsm(self, event):
         # No estado waitAck, encaminhamos um pacote do tipo CON e agora aguardaremos o ACK
