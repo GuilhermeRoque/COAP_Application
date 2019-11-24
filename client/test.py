@@ -34,7 +34,10 @@ if resp is None:
 else:
     print(resp.getPayload())
 '''
+'''
 
+
+'''
 cliente = CoapClient(CoapClient.GET, CoapClient.CON, UDP_IP, UDP_PORT, PATH)
 # cliente = CoapClient(CoapClient.GET, CoapClient.NON, UDP_IP, UDP_PORT, PATH)
 # cliente = CoapClient(CoapClient.POST, CoapClient.CON, UDP_IP, UDP_PORT, PATH, payload=msg.SerializeToString())

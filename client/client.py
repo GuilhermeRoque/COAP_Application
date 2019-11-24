@@ -1,6 +1,7 @@
 import socket
 from messages import GET, POST, MessageType, MessageOptions, MessageTranslator, Response, ResponseCode
-import poller
+from callback import Callback
+from poller import Poller
 import random
 # import re
 
@@ -21,7 +22,7 @@ class CEvent(object):
         self.frame = frame
 
 
-class CoapClient(poller.Callback):
+class CoapClient(Callback):
     START = 0
     WAIT_ACK = 1
     WAIT_CON = 2
@@ -41,7 +42,7 @@ class CoapClient(poller.Callback):
         self._path = path
         self._payload = payload
         self._retransmitions = 0
-        self._poller = poller.Poller()
+        self._poller = Poller()
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self._state = CoapClient.START
         self._message = self._createMessage()

@@ -3,7 +3,7 @@
 import random
 import time
 
-from Application.poller import Callback, Poller
+from poller import Callback, Poller
 from server import sensorapp_pb2
 
 
@@ -22,7 +22,6 @@ class metodosProto(Callback):
 
     def start(self):
         mensagem = sensorapp_pb2.Mensagem()
-        mensagem.placa = self.placa
         mensagem.placa = self.placa
         sensores = []
         for i in range(len(self.sensores)):
