@@ -311,7 +311,7 @@ class MessageTranslator(object):
         try:
             msg = Response(typeMessage=type, token=token, messageId=messageId, code=code)
             if (token != 0) and (len(self.message) > (end_token + 1)):
-                msg.setPayload(self.message[end_token+2:])
+                msg.setPayload(self.message[end_token+1:])
         except InvalidMessageKind as e:
             pass
 
