@@ -7,11 +7,6 @@ from client import CoapClient
 from projeto2_pb2 import Mensagem, Sensor
 from client import CEvent
 
-UDP_IP = "localhost"
-UDP_PORT = 5683
-PATH = "ptc"
-
-
 class App(Layer):
 
     START = 0
@@ -19,9 +14,14 @@ class App(Layer):
     Active = 2
     WaitAck = 3
 
-    def __init__(self, periodo=60, sensores=None, placa="placaApp", timeout=None):
+    def __init__(self, periodo=5, sensores=None, placa="placaApp"):
         #Para o poller
-        self.timeout = timeout
+        self.timeout = periodo
+        self.base_timeout = self.timeout
+        self.fd = None
+
+        self.enable_timeout()
+
         #Placa
         self.placa = placa
         #Sensores da placa
@@ -59,25 +59,37 @@ class App(Layer):
         self._lower.send(payload, CoapClient.POST, CoapClient.CON)
 
     def handle(self):
-        ev = CEvent(CEvent.FRAME, self._sock.recvfrom(1024)[0])
-        self.handle_fsm(ev)
+        pass
 
     def handle_timeout(self):
+        print("TIMEOUT")
         ev = CEvent(CEvent.TIMEOUT)
         self.handle_fsm(ev)
 
     def handle_fsm(self, ev):
+
+        eventType = ev.eventType
+
         if self.state == App.START:
-            if ev == CEvent.TIMEOUT:
+            if eventType == CEvent.TIMEOUT:
+                print("START")
                 self.send_conf()
                 self.state = App.WaitConf
         elif self.state == App.WaitConf:
-            if ev == CEvent.FRAME:
+            if eventType == CEvent.FRAME:
+                print("CONF RCV")
                 self.state = App.Active
         elif self.state == App.Active:
-            if ev == CEvent.TIMEOUT:
+            if eventType == CEvent.TIMEOUT:
+                print("SENDING DATA")
                 self.send_collected_data()
                 self.state = App.WaitAck
         elif self.state == App.WaitAck:
-            if ev == CEvent.FRAME:
+            if eventType == CEvent.FRAME:
+                print("ACK RCV")
                 self.state = App.Active
+
+    def notify(self, data, *info):
+        print("FRAME: ", data.getPayload())
+        ev = CEvent(CEvent.FRAME, data)
+        self.handle_fsm(ev)

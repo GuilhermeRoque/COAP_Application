@@ -45,7 +45,6 @@ class CoapClient(Layer):
         self.base_timeout = random.randint(CoapTimeouts.ACK_TIMEOUT,
                                            CoapTimeouts.ACK_TIMEOUT * CoapTimeouts.ACK_RANDOM_FACTOR)
         self.timeout = self.base_timeout
-        self.terminou = False
 
         self._requestType = None
         self._messageType = None
@@ -105,8 +104,8 @@ class CoapClient(Layer):
 
     def _end(self):
         self.disable_timeout()
-        self.disable()
-        self.terminou = True
+        self._state = CoapClient.START
+        self._upper.notify(self._response)
 
     def handle_fsm(self, event):
         # No estado waitAck, encaminhamos um pacote do tipo CON e agora aguardaremos o ACK
@@ -198,7 +197,7 @@ class CoapClient(Layer):
                 return
 
             # Resposta recebida
-            self._response = resp
+            self._response
             self._end()
 
     def handle(self):
@@ -220,3 +219,7 @@ class CoapClient(Layer):
 
     def getResponse(self):
         return self._response
+
+    def send(self, data, *info):
+        self.constroi(info[0], info[1], data)
+        self.request()
