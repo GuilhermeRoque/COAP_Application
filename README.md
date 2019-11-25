@@ -14,8 +14,8 @@
   O servidor de coleta recusa mensagens Dados de placas não registradas. Valores de sensores desconhecidos são ignorados. 
   
 - Para executar pelo terminal vá para o diretório raiz do projeto e execute os comandos:
-  2. **python3 server/sensorapp.py** (para o servidor)
-  3. **python3 client/main.py** (para o cliente)
+  1. **python3 server/sensorapp.py** (para o servidor)
+  2. **python3 client/main.py** (para o cliente)
 
 >Formato da mensagem COAP.
 >
