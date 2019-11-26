@@ -96,8 +96,6 @@ class App(Layer):
                 self.state = App.Active
             elif eventType == AEvent.ERROR:
                 self.state = App.START
-            else:
-                self.state = App.Active
 
         elif self.state == App.Active:
             if eventType == AEvent.TIMEOUT:
