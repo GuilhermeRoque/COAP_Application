@@ -42,8 +42,9 @@ class CoapClient(Layer):
         self.disable_timeout()
         self._response = None
         self.fd = self._sock
-        self.base_timeout = random.randint(CoapTimeouts.ACK_TIMEOUT,
+        self._base_timeout = random.randint(CoapTimeouts.ACK_TIMEOUT,
                                            CoapTimeouts.ACK_TIMEOUT * CoapTimeouts.ACK_RANDOM_FACTOR)
+        self.base_timeout = self._base_timeout
         self.timeout = self.base_timeout
 
         self._requestType = None
@@ -55,6 +56,9 @@ class CoapClient(Layer):
         self._requestType = requestType
         self._messageType = messageType
         self._payload = payload
+        self._retransmitions = 0
+        self.base_timeout = self._base_timeout
+        self.timeout = self.base_timeout
         self._message = self._createMessage()
 
     def _genToken(self):
