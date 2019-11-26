@@ -99,8 +99,9 @@ class CoapClient(Layer):
         self.enable_timeout()
 
     def _sendAck(self):
-        ack = Response(typeMessage=MessageType.ACK, messageId=self._messageId, code=ResponseCode.EMPTY)
-        self._sock.sendto(ack.getHeader(), (self._ip, self._port))
+        ack = Response(typeMessage=MessageType.ACK, messageId=self._messageId, token=self._token)
+        ack.setCode(ResponseCode.EMPTY)
+        self._sock.sendto(ack.getHeader() + ack.getTokenBytes(), (self._ip, self._port))
 
     def _end(self):
         self.disable_timeout()
@@ -170,6 +171,7 @@ class CoapClient(Layer):
                 return
 
             self._response = resp
+            self._sendAck()
             self._end()
 
         # No estado WAIT_NON, enviamos uma requisição do tipo NON (nao confirmavel)
